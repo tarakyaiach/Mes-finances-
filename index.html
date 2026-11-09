@@ -139,6 +139,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="layer"></div>
 <div class="toast" id="toast" hidden></div>
 <script>
+const APP_VERSION="18 · 9 nov. 2026";
 /* ===== CORE: pure logic, amounts in cents ===== */
 const KINDS={achat:"Achat",rembours:"Remboursement / crédit",frais:"Frais",interets:"Intérêts",paiement:"Paiement de carte",epargne:"Transfert d'épargne",revenu:"Revenu / paie"};
 const DEFAULT_CATS=[
@@ -452,18 +453,18 @@ function txCell(t){const sign={achat:"−",frais:"−",interets:"−",rembours:"
  const label=t.kind==="achat"||t.kind==="rembours"?(t.splits&&t.splits.length?"Réparti · "+t.splits.length+" catégories":t.cat):KINDS[t.kind];
  return`<button class="cell" data-act="edit" data-id="${t.id}">${t.kind==="achat"||t.kind==="rembours"?catIco(t.cat):kindIco(t.kind,col)}<span class="main"><b>${esc(t.merchant)}</b><small>${esc(label)}${t.accountId?" · "+esc(accName(t.accountId)):""}${t.walletId?" · Apple Pay":""}${t.pro?' · <b style="color:var(--save)">MBF</b>':""}${t.auto?" · auto":""}</small></span><span class="val" style="color:${col}">${sign}${fmtC(t.cents)}</span></button>`}
 
-VIEWS.budget=()=>{const mk=S.month,cur=todayIso().slice(0,7),today=TODAY(),st=monthStats(varTxs(),mk),auto=isAuto(),P=autoPlan(),inc=P.inc,fx=P.fx,gl=P.gl,sv=auto?P.sv:0,vb=varBudgetTotal(),left=inc-fx-gl-sv-vb;
+VIEWS.budget=()=>{const mk=S.month,cur=todayIso().slice(0,7),today=TODAY(),st=monthStats(varTxs(),mk),auto=isAuto(),P=autoPlan(),inc=P.inc,fx=P.fx,gl=P.gl,sv=auto?P.sv:0,vb=varBudgetTotal(),av=Math.max(0,st.net),left=inc-fx-gl-sv-vb;
  const bills=cfg.bills.slice().sort((a,b)=>a.day-b.day),paidAmt=bills.reduce((a,b)=>a+billPaid(b,mk).reduce((x,t)=>x+t.cents,0),0);
  const cats=cfg.cats.filter(c=>budgetFor(c.name)||(st.byCat[c.name]||0)>0).sort((a,b)=>(st.byCat[b.name]||0)-(st.byCat[a.name]||0)),others=cfg.cats.filter(c=>!cats.includes(c));
  const W=x=>inc?Math.max(0,Math.min(100,x/inc*100)):0,leg=(c,l,v,x)=>`<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="display:flex;align-items:center;gap:8px;min-width:0"><i style="width:10px;height:10px;border-radius:3px;background:${c};display:inline-block;flex:none"></i><span>${l}</span></span><span class="num" style="font-weight:600;white-space:nowrap;${x||""}">${v}</span></div>`;
  const tooMuch=inc&&(fx+gl+sv>inc);
  return`<div class="top"><span></span>${monthNav()}</div><h1>Budget</h1>
  <div class="hero">${inc?`<div class="kl">Ta paie ce mois-ci (environ)</div><div class="big num">${fmtB(inc)}</div>
-  <div style="display:flex;height:12px;border-radius:6px;overflow:hidden;margin:14px 0;background:var(--fill)"><i style="width:${W(fx)}%;background:var(--mute)"></i><i style="width:${W(vb)}%;background:var(--accent)"></i><i style="width:${W(Math.max(0,inc-fx-vb))}%;background:var(--save)"></i></div>
-  <div class="gap">${leg("var(--mute)","Charges fixes",fmtB(fx))}${leg("var(--accent)","Dépenses variables (limite)",fmtB(vb))}
-  ${inc-fx-vb>=0?leg("var(--save)","<b>Épargne automatique</b> (tout le reste)",fmtB(inc-fx-vb),"color:var(--save);font-size:17px"):leg("var(--bad)","Il manque",fmtB(fx+vb-inc),"color:var(--bad)")}
-  ${gl&&inc-fx-vb>=0?`<div class="mini" style="margin:-4px 0 0 18px">dont ${fmtC(Math.min(gl,inc-fx-vb))} pour tes objectifs${inc-fx-vb>gl?" · "+fmtC(inc-fx-vb-gl)+" en plus":""}</div>`:""}</div>
-  ${tooMuch?`<p class="note" style="color:var(--bad);margin:10px 0 0">Tes charges fixes et tes objectifs demandent plus que ta paie. Repousse la date d'un objectif ou baisse son montant.</p>`:gl&&inc-fx-vb<gl?`<p class="note" style="color:var(--warn);margin:10px 0 0">Le reste ne couvre pas tes objectifs : il manque ${fmtC(gl-Math.max(0,inc-fx-vb))} par mois. Baisse quelques limites ou passe en Automatique.</p>`:""}
+  <div style="display:flex;height:12px;border-radius:6px;overflow:hidden;margin:14px 0;background:var(--fill)"><i style="width:${W(fx)}%;background:var(--mute)"></i><i style="width:${W(av)}%;background:var(--accent)"></i><i style="width:${W(Math.max(0,inc-fx-av))}%;background:var(--save)"></i></div>
+  <div class="gap">${leg("var(--mute)","Charges fixes",fmtB(fx))}${leg("var(--accent)","Dépenses variables (dépensé)",fmtB(av))+`<div class="mini" style="margin:-4px 0 0 18px">limite du mois : ${fmtB(vb)}</div>`}
+  ${inc-fx-av>=0?leg("var(--save)","<b>Épargne automatique</b> (le reste)",fmtB(inc-fx-av),"color:var(--save);font-size:17px"):leg("var(--bad)","Il manque",fmtB(fx+av-inc),"color:var(--bad)")}
+  ${gl&&inc-fx-av>=0?`<div class="mini" style="margin:-4px 0 0 18px">dont ${fmtC(Math.min(gl,inc-fx-av))} pour tes objectifs${inc-fx-av>gl?" · "+fmtC(inc-fx-av-gl)+" en plus":""}</div>`:""}</div>
+  ${tooMuch?`<p class="note" style="color:var(--bad);margin:10px 0 0">Tes charges fixes et tes objectifs demandent plus que ta paie. Repousse la date d'un objectif ou baisse son montant.</p>`:gl&&inc-fx-av<gl?`<p class="note" style="color:var(--warn);margin:10px 0 0">Le reste ne couvre pas tes objectifs : il manque ${fmtC(gl-Math.max(0,inc-fx-av))} par mois. Baisse quelques limites ou passe en Automatique.</p>`:""}
   <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px;display:flex;justify-content:space-between;align-items:baseline;gap:10px"><span><span class="kl" style="text-transform:capitalize">${monthLabel(mk)}</span><br><b>Épargné pour l'instant</b></span><span class="num" style="font-size:22px;font-weight:700;color:${monthSaved(mk)>0?"var(--save)":"var(--bad)"}">${fmtC(Math.max(0,monthSaved(mk)))}</span></div>
   <div class="mini">Paie reçue moins tout ce que tu as dépensé (fixes et variables). ${!monthStats(txs,mk).income?"Ta paie s'ajoute toute seule à sa date.":monthSaved(mk)<0&&mk===cur&&payDates(cfg.pay,addDays(today,1),new Date(today.getFullYear(),today.getMonth()+1,0)).length?"Tes dépenses dépassent pour l'instant ta paie reçue, donc 0 $. Normal en début de mois : ta prochaine paie arrive le "+fmtD(payDates(cfg.pay,addDays(today,1),new Date(today.getFullYear(),today.getMonth()+1,0))[0]).slice(0,5)+".":""}</div>`:`<div class="sub" style="margin:0">Ajoute ta paie (onglet Ma paie) pour voir comment elle se répartit entre charges fixes, dépenses variables et épargne.</div>`}</div>
  ${(()=>{const T=totalSavings(mk);return`<div class="hero" style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div class="kl">Épargne totale</div><div class="mini">Objectifs ${fmtC(T.goals)} + pour l'instant <span style="color:${T.now>0?"inherit":"var(--bad)"}">${fmtC(T.now)}</span></div></div><div class="num" style="font-size:26px;font-weight:700;color:var(--save);white-space:nowrap">${fmtB(T.total)}</div></div>`})()}
@@ -492,7 +493,7 @@ VIEWS.pay=()=>{const p=cfg.pay,today=TODAY();if(!p.netCents||!p.firstDate)return
 
 VIEWS.more=()=>{const rows=[["bilan","Bilan du mois","var(--save)","★"],["calendar","Calendrier et dépenses à venir","var(--warn)","▦"],["goals","Objectifs et projections","var(--good)","◎"],["reports","Rapports et graphiques","var(--save)","▥"],["import","Import de relevés","var(--accent)","⇣"],["wallet","Apple Pay","#111","▭"],["cats","Catégories","#8e44ad","◆"],["alerts","Alertes budgétaires","var(--bad)","!"]],rows2=[["settings","Réglages","var(--mute)","⚙"],["backup","Sauvegarde et export","var(--mute)","⇪"],["tests","Vérification des calculs","var(--mute)","✓"]];
  const li=r=>`<button class="cell chev" data-act="go" data-v="${r[0]}"><span class="ico" style="background:${r[2]}">${r[3]}</span><span class="main"><b>${r[1]}</b></span></button>`;
- return topbar("Plus")+`<div class="group">${rows.map(li).join("")}</div><h3></h3><div class="group">${rows2.map(li).join("")}</div>`};
+ return topbar("Plus")+`<div class="group">${rows.map(li).join("")}</div><h3></h3><div class="group">${rows2.map(li).join("")}</div><p class="note" style="text-align:center;margin-top:18px">Mes Finances · version ${APP_VERSION}</p>`};
 
 VIEWS.calendar=()=>{const[y,m]=S.calMonth.split("-").map(Number),first=new Date(y,m-1,1),start=addDays(first,-((first.getDay()+6)%7)),today=TODAY();
  const ev={};const add=(d,type,label,c)=>(ev[d]=ev[d]||[]).push({type,label,c});payDates(cfg.pay,start,addDays(start,41)).forEach(d=>add(d,"pay","Paie",cfg.pay.netCents));
@@ -812,7 +813,7 @@ document.addEventListener("change",async e=>{if((e.target.id==="walletfile"||e.t
  try{if(navigator.storage&&navigator.storage.persist)await navigator.storage.persist()}catch(e){}
  ready=true;locked=!!cfg.pinHash;await autoPay();if(cfg.setupDone&&!locked)checkAlerts();render()})();
 document.addEventListener("visibilitychange",async()=>{if(document.visibilityState==="visible"&&ready&&!locked){S.autoB=null;if(await autoPay())checkAlerts();render()}});
-if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+if("serviceWorker" in navigator){let had=!!navigator.serviceWorker.controller,reloaded=false;navigator.serviceWorker.addEventListener("controllerchange",()=>{if(had&&!reloaded){reloaded=true;location.reload()}had=true});addEventListener("load",()=>navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{r.update().catch(()=>{});document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")r.update().catch(()=>{})})}).catch(()=>{}))}
 </script>
 </body>
 </html>
