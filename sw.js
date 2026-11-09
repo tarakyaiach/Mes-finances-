@@ -1,5 +1,5 @@
 /* Mes Finances — cache hors ligne */
-const V="mes-finances-v2";
+const V="mes-finances-v4";
 const LOCAL=["./","index.html","manifest.json","icon-192.png","icon-512.png","apple-touch-icon.png"];
 const LIBS=["https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js","https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js","https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js","https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"];
 self.addEventListener("install",e=>{e.waitUntil((async()=>{const c=await caches.open(V);await c.addAll(LOCAL);await Promise.all(LIBS.map(u=>fetch(u,{mode:"cors"}).then(r=>r.ok&&c.put(u,r)).catch(()=>{})));self.skipWaiting()})())});
