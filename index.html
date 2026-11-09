@@ -161,7 +161,7 @@ const DEFAULT_CATS=[
 const RULES=[
  ["Épicerie",/\b(iga|metro|maxi|provigo|loblaw|super ?c|adonis|costco(?! gas)|sobeys|farm ?boy|food ?basics|giant tiger|no ?frills|walmart|rachelle|avril|marché)\b/i],
  ["Vêtements",/\b(winners|marshalls|simons|zara|h ?& ?m|old navy|gap|uniqlo|sport ?chek|sports experts|la vie en rose|aritzia|lululemon|reitmans|le chateau|footlocker|aldo)\b/i],
- ["Auto",/\b(canadian tire|esso|shell|petro[- ]?canada|ultramar|irving|pioneer|costco gas|couche[- ]tard|saaq|midas|jiffy|kal tire|speedy)\b/i],
+ ["Auto",/(pi[eè]ces? d.?auto|auto ?parts|napa|lordco|carquest|uni-select)|\b(canadian tire|esso|shell|petro[- ]?canada|ultramar|irving|pioneer|costco gas|couche[- ]tard|saaq|midas|jiffy|kal tire|speedy)\b/i],
  ["Transport",/\b(uber(?! ?eats)|lyft|sto|oc ?transpo|stm|presto|opus|via rail|parking|stationnement|indigo|impark)\b/i],
  ["Maison",/\b(ikea|home ?depot|rona|r[ée]no[- ]?d[ée]p[ôo]t|structube|bouclair|homesense|dollarama|bureau en gros|staples|linen chest|wayfair)\b/i],
  ["Restaurants",/\b(tim hortons?|starbucks|mcdonald|mcdo|subway|a ?& ?w|uber ?eats|doordash|skip(the)?dishes|pizza|second cup|harvey|st-hubert|benny|poulet|sushi|resto|restaurant|caf[ée]|burger|shawarma)\b/i],
@@ -213,7 +213,7 @@ function parseCSV(text){const rows=[];let row=[],f="",q=false;const sep=(text.sp
 function dupKey(t){return t.date+"|"+t.cents+"|"+merchantKey(t.merchant)}
 /* wallet sheet lines: MF1;id;iso-datetime;amount;merchant;card;END */
 function parseWallet(text){const out=[];const s=String(text).replace(/\\n/g,"\n");
- for(const line of s.split(/\r?\n/)){const m=line.match(/MF1;(.*);END/);if(!m)continue;let f=m[1].split(";").map(x=>x.trim());
+ for(const line of s.split(/\r?\n/)){const m=line.match(/MF1\s*;(.*?);\s*END/i);if(!m)continue;let f=m[1].split(";").map(x=>x.trim());
   let id,dt,amt,mer,card;if(f.length>=5&&!/\d[.,]\d{2}/.test(f[1])&&/\d[.,]\d{2}/.test(f[2])){[id,dt,amt,mer,card]=f}else{[dt,amt,mer,card]=f;id=null}
   const c=Math.abs(toCents(amt||""));if(!c)continue;const d=(dt||"").slice(0,10);const date=/^\d{4}-\d{2}-\d{2}$/.test(d)?d:(parseDate(dt||"")||{}).iso||isoD(new Date());
   out.push({walletId:id||("w"+(dt||"")+"|"+c+"|"+merchantKey(mer)),date,cents:c,merchant:(mer||"").trim()||"Apple Pay",card:(card||"").trim()})}return out}
